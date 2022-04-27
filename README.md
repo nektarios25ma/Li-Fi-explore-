@@ -48,3 +48,4 @@ https://grobotronics.com/battery-holder-2x18650-with-wires-and-switchoem.html
 
 12) lcd 20X4 οθόνη : https://grobotronics.com/basic-20x4-character-lcd-white-on-blue-5v-i2c-protocol.html
 €9.90
+Πρώτο βίντεο-τεστ: https://drive.google.com/file/d/18YSwi4BN7lmy-_6Y5UTU7oJVigb3VVI3/view?usp=sharing
