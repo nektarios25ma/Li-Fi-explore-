@@ -10,7 +10,8 @@ SOFTWARE
 ARDUINO IDE 
 
 Πηγή ιδεών, από την οποία όμως θα διαφοροποιηθούμε στην τελική μορφή του έργου
-Link: https://create.arduino.cc/projecthub/hamiran1997/li-fi-system-36ff5b
+Link: https://create.arduino.cc/projecthub/hamiran1997/li-fi-system-36ff5b 
+ή https://create.arduino.cc/projecthub/ramamzi31/wirlesse-laser-data-transmission-lifi-100b-second-b59303
 SOFTWARE : ARDUINO IDE
 ΥΛΙΚΑ:
 1)2Xarduino nano : https://grobotronics.com/nano-ft232-atmega328p-compatible-for-arduino-nano.html
