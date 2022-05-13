@@ -8,7 +8,7 @@ Li-Fi μια εξέλιξη της τεχνολογίας Wi-Fi
 Η συσκευή μας θα αποτελείται κατά συνέπεια από τον πομπό και τον δέκτη και θα μεταδίδει δεδομένα(data) μέσω laser (ή led).
 SOFTWARE 
 ARDUINO IDE 
-
+first test: https://drive.google.com/file/d/18YSwi4BN7lmy-_6Y5UTU7oJVigb3VVI3/view?usp=sharing
 Πηγή ιδεών, από την οποία όμως θα διαφοροποιηθούμε στην τελική μορφή του έργου
 Link: https://create.arduino.cc/projecthub/hamiran1997/li-fi-system-36ff5b 
 ή https://create.arduino.cc/projecthub/ramamzi31/wirlesse-laser-data-transmission-lifi-100b-second-b59303
