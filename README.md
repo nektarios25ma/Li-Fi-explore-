@@ -1,4 +1,5 @@
 # Li-Fi-explore-
+
 Li-Fi (explore)
 Li-Fi μια εξέλιξη της τεχνολογίας Wi-Fi
 Το Li-Fi (επίσης γραμμένο ως LiFi ) είναι μια τεχνολογία ασύρματης επικοινωνίας που χρησιμοποιεί το φως για τη μετάδοση δεδομένων και τη θέση μεταξύ συσκευών. Ο όρος εισήχθη για πρώτη φορά από τον Harald Haas κατά τη διάρκεια μιας ομιλίας του TEDGlobal το 2011 στο Εδιμβούργο .  
@@ -11,6 +12,8 @@ ARDUINO IDE
 
 first test:
 https://drive.google.com/file/d/18YSwi4BN7lmy-_6Y5UTU7oJVigb3VVI3/view?usp=sharing
+
+https://drive.google.com/file/d/1DIj_caTDHpedx9Hy3iv3UxCEhPMSlt-x/view?usp=drivesdk
 
 Πηγή ιδεών, από την οποία όμως θα διαφοροποιηθούμε στην τελική μορφή του έργου
 Link: https://create.arduino.cc/projecthub/hamiran1997/li-fi-system-36ff5b 
