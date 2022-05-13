@@ -11,7 +11,6 @@ SOFTWARE
 ARDUINO IDE 
 
 first test:
-https://drive.google.com/file/d/18YSwi4BN7lmy-_6Y5UTU7oJVigb3VVI3/view?usp=sharing
 
 https://drive.google.com/file/d/1DIj_caTDHpedx9Hy3iv3UxCEhPMSlt-x/view?usp=sharing
 
