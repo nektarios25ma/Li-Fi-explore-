@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>LiFi Torch TX (2-4-4) — Συγχρονισμένο με RECEIVERchat1</title>
+<style>
+  body { font-family: system-ui, Arial, sans-serif; margin: 16px; line-height: 1.35; }
+  .row { margin: 10px 0; }
+  textarea { width: 100%; height: 110px; }
+  input[type="number"] { width: 90px; }
+  button { padding: 10px 14px; margin-right: 6px; }
+  #status { padding: 8px; border: 1px solid #ddd; border-radius: 6px; min-height: 24px; background:#fafafa; }
+  #flashOverlay { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; z-index: 9999; pointer-events: none; background: black; display: none; }
+  .warn { color: #b51212; font-weight: 600; }
+  .ok   { color: #0a871b; font-weight: 600; }
+  small { color:#555 }
+</style>
+</head>
+<body>
+<h2>LiFi Torch Transmitter (2-4-4) — συμβατό με RECEIVERchat1.ino</h2>
+
+<div class="row" id="httpsWarn" style="display:none;">
+  <span class="warn">Προσοχή:</span> Η πρόσβαση σε κάμερα/φακό συνήθως απαιτεί <b>HTTPS</b> (ή localhost).
+</div>
+
+<div class="row">
+  <button id="enable">1) Ενεργοποίηση κάμερας/φακού</button>
+  <button id="torchOn">Test Torch ON</button>
+  <button id="torchOff">Test Torch OFF</button>
+</div>
+
+<div class="row">
+  <label>Μήνυμα:</label><br/>
+  <textarea id="msg" placeholder="Γράψε το κείμενο που θα σταλεί στη LCD..."></textarea>
+</div>
+
+<div class="row">
+  <label>Base unit (ms):</label>
+  <input id="unit" type="number" min="1" max="200" value="12"/>
+  <label style="margin-left:16px;"><input id="framing" type="checkbox" checked/> Preamble / Length / Checksum</label>
+  <label style="margin-left:16px;"><input id="screenFallback" type="checkbox"/> Χρήση οθόνης ως fallback</label>
+</div>
+
+<div class="row">
+  <button id="send">Αποστολή</button>
+  <button id="stop">Διακοπή</button>
+</div>
+
+<div id="status" class="row">Έτοιμο. Βάλε Base unit = ίδιο με το <code>selangmasa</code> του δέκτη.</div>
+<small>Πρωτόκολλο: start=ON(2×), data: 1→ON / 0→OFF (4×), stop=OFF(4×). LSB-first. Preamble 0x55 0x55, SOF 0x02, LEN, Payload, SUM(8-bit), EOF 0x03.</small>
+
+<div id="flashOverlay"></div>
+
+<script>
+(() => {
+  // --- Κατάσταση / μεταβλητές ---
+  let sending = false;
+  let stream = null;
+  let videoTrack = null;
+  let imageCapture = null;
+  let torchByConstraints = false;
+  let torchByImageCapture = false;
+
+  const statusEl = document.getElementById('status');
+  const overlay = document.getElementById('flashOverlay');
+  const screenFallbackChk = document.getElementById('screenFallback');
+
+  function log(msg, cls) {
+    statusEl.textContent = msg;
+    statusEl.className = cls ? ('row ' + cls) : 'row';
+  }
+
+  // Εμφάνιση προειδοποίησης αν δεν είμαστε σε HTTPS/localhost
+  try {
+    const isHttps = (location.protocol === 'https:' || location.hostname === 'localhost');
+    if (!isHttps) document.getElementById('httpsWarn').style.display = 'block';
+  } catch (_) {}
+
+  // Ζήτα κάμερα & προσπάθησε να ενεργοποιήσεις φακό (2 τρόποι)
+  async function enableCameraTorch() {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 640 }, height: { ideal: 480 } },
+        audio: false
+      });
+      videoTrack = stream.getVideoTracks()[0];
+
+      // 1) Torch μέσω constraints
+      try {
+        const caps = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
+        if (caps && 'torch' in caps) {
+          await videoTrack.applyConstraints({ advanced: [{ torch: true }] });
+          torchByConstraints = true;
+          log('Βρέθηκε φακός (constraints).', 'ok');
+          await videoTrack.applyConstraints({ advanced: [{ torch: false }] });
+        }
+      } catch (e) { /* θα δοκιμάσουμε ImageCapture */ }
+
+      // 2) Fallback: ImageCapture API
+      if (!torchByConstraints) {
+        try {
+          imageCapture = new ImageCapture(videoTrack);
+          if (imageCapture.setOptions) {
+            await imageCapture.setOptions({ torch: true });
+            torchByImageCapture = true;
+            log('Βρέθηκε φακός (ImageCapture).', 'ok');
+            await imageCapture.setOptions({ torch: false });
+          }
+        } catch (e) { /* ίσως δεν υποστηρίζεται */ }
+      }
+
+      if (!torchByConstraints && !torchByImageCapture) {
+        log('Δεν μπόρεσα να ανοίξω φακό από browser. Χρησιμοποίησε HTTPS ή άναψε το fallback οθόνης.', 'warn');
+      }
+    } catch (e) {
+      log('Σφάλμα κάμερας: ' + e.message, 'warn');
+    }
+  }
+
+  // Toggle φακού ή fallback οθόνης
+  async function setTorch(on) {
+    try {
+      if (torchByConstraints && videoTrack) {
+        await videoTrack.applyConstraints({ advanced: [{ torch: !!on }] });
+        return;
+      }
+      if (torchByImageCapture && imageCapture) {
+        await imageCapture.setOptions({ torch: !!on });
+        return;
+      }
+    } catch (e) { /* αν αποτύχει, πέφτουμε σε fallback οθόνης */ }
+    if (screenFallbackChk.checked) {
+      overlay.style.display = 'block';
+      overlay.style.background = on ? 'white' : 'black';
+    }
+  }
+
+  // Χρήσιμα helpers
+  const sleep = (ms) => new Promise(res => setTimeout(res, ms));
+
+  // Δημιουργία frame συμβατού με RECEIVERchat1
+  function buildFrame(payload) {
+    const out = [];
+    out.push(0x55, 0x55);   // preamble
+    out.push(0x02);         // SOF
+    const len = payload.length & 0xFF;
+    out.push(len);          // Length
+    let sum = len;
+    for (const b of payload) { out.push(b); sum = (sum + (b & 0xFF)) & 0xFF; }
+    out.push(sum & 0xFF);   // Checksum mod 256
+    out.push(0x03);         // EOF
+    return new Uint8Array(out);
+  }
+
+  // === Πρωτόκολλο 2-4-4, LSB-first ===
+  async function sendBit(bit, unit) {
+    // start: ON για 2×unit
+    await setTorch(true);                await sleep(2 * unit);
+    // data: 1→ON, 0→OFF για 4×unit
+    await setTorch(bit ? true : false);  await sleep(4 * unit);
+    // stop: OFF για 4×unit
+    await setTorch(false);               await sleep(4 * unit);
+  }
+
+  async function sendByte(byte, unit) {
+    for (let i = 0; i < 8; i++) {
+      const b = (byte >> i) & 1;   // LSB-first
+      await sendBit(b, unit);
+    }
+  }
+
+  async function sendBytes(bytes, unit) {
+    for (const b of bytes) await sendByte(b, unit);
+  }
+
+  async function startSend() {
+    if (sending) return;
+    sending = true;
+    if (screenFallbackChk.checked) overlay.style.display = 'block';
+
+    try {
+      // Προσοχή: Βάλε εδώ την ΙΔΙΑ τιμή με το selangmasa του δέκτη
+      const unit = Math.max(1, Math.min(200, parseInt(document.getElementById('unit').value || '12')));
+      const text = (document.getElementById('msg').value || "").trim();
+      if (!text) { log('Γράψε κάτι πρώτα.'); sending = false; overlay.style.display = 'none'; return; }
+
+      const enc = new TextEncoder();
+      const payload = enc.encode(text);
+      const useFraming = document.getElementById('framing').checked;
+
+      const data = useFraming ? buildFrame(payload) : payload;
+
+      log('Μετάδοση...');
+      await sendBytes(data, unit);
+      if (!useFraming) await sleep(unit * 6); // μικρό κενό όταν δεν υπάρχει πλαίσιο
+      log('Ολοκληρώθηκε.', 'ok');
+    } catch (e) {
+      log('Σφάλμα: ' + e.message, 'warn');
+    } finally {
+      await setTorch(false);
+      sending = false;
+      overlay.style.display = 'none';
+    }
+  }
+
+  function stopSend() {
+    sending = false;
+    setTorch(false);
+    overlay.style.display = 'none';
+    log('Διακόπηκε.');
+  }
+
+  // Συνδέσεις κουμπιών
+  document.getElementById('enable').addEventListener('click', enableCameraTorch);
+  document.getElementById('torchOn').addEventListener('click', () => setTorch(true));
+  document.getElementById('torchOff').addEventListener('click', () => setTorch(false));
+  document.getElementById('send').addEventListener('click', startSend);
+  document.getElementById('stop').addEventListener('click', stopSend);
+
+  log('Έτοιμο. 1) Πάτα "Ενεργοποίηση κάμερας/φακού". 2) Βάλε Base unit = selangmasa του δέκτη. 3) Αποστολή.');
+})();
+</script>
+</body>
+</html>
